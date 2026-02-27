@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zenith Scholars</title>
+<link rel="stylesheet" href="style.css">
+
+
+</head>
+
+<body>
+
+<header>
+    <h1>ZENITH SCHOLARS</h1>
+    <p>Skill Up, Stand Up and Succeed</p>
+    <a  target="_blank" href="form.html" class="btn">Register Now!</a>
+    
+</header>
+
+<section>
+    <h2 class="section-title">About Us</h2>
+    <p>Zenith Scholars provides quality online tuition for Classes 7–10. 
+    Limited 20 students per batch to ensure personal attention and better results.</p>
+</section>
+
+<section>
+    <h2 class="section-title">Our Features</h2>
+    <div class="features">
+        <div class="feature-box">
+            <h3>Online Live Classes</h3>
+            <p>Interactive and easy-to-understand sessions.</p>
+           
+        </div>
+        <div class="feature-box">
+            <h3>Weekly Tests</h3>
+            <p>Every Sunday performance evaluation.</p>
+        </div>
+        <div class="feature-box">
+            <h3>Study Notes</h3>
+            <p>Well-prepared notes for better revision.</p>
+        </div>
+        <div class="feature-box">
+            <h3>Doubt Solving</h3>
+            <p>Special sessions for clearing concepts.</p>
+        </div>
+    </div>
+</section>
+
+<section class="contact" id="contact">
+    <h2 class="section-title" style="color:white;">Contact Us</h2>
+    <p>📞 6269154804</p>
+    <p>📲 WhatsApp: 9329049833 | 6206229671</p>
+    <p>New Batch Starting from 15 March 2026</p>
+</section>
+
+<footer>
+    © 2026 Zenith Scholars | All Rights Reserved
+</footer>
+<button id="pay-btn">Pay ₹100</button>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const payBtn = document.getElementById("pay-btn");
+
+    if (!payBtn) {
+        console.error("Pay button not found");
+        return;
+    }
+
+    payBtn.onclick = async function () {
+
+        const response = await fetch("http://localhost:5000/create-order", {
+            method: "POST"
+        });
+
+        const order = await response.json();
+
+        const options = {
+            key: " rzp_live_SLJCOBqfFovpLm",
+            amount: order.amount,
+            currency: order.currency,
+            order_id: order.id,
+            name: "Zenith Scholars",
+            description: "Course Payment",
+            handler: async function (response) {
+
+                await fetch("http://localhost:5000/verify-payment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(response)
+                });
+
+                alert("Payment Successful!");
+            }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+    };
+
+});
+</script>
+</body>
+
+
+
+
+
+
+
+
+
+</html>
