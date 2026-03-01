@@ -12,13 +12,13 @@ const app = express();
 
 /* ----------------- MONGODB ----------------- */
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.log("MongoDB Error:", err));
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.log("MongoDB Error:", err));
 
 /* ----------------- MIDDLEWARE ----------------- */
 app.use(cors({
   origin: "https://zerobugansh.github.io",
-  methods: ["GET", "POST", "OPTIONS"],
+  methods: ["GET", "POST"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
@@ -31,7 +31,6 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: { type: String, default: "student" },
   isPaid: { type: Boolean, default: false },
-
   payments: [
     {
       orderId: String,
@@ -42,139 +41,81 @@ const userSchema = new mongoose.Schema({
   ]
 });
 
-/* ----------------- AUTH ROUTES ----------------- */
+const User = mongoose.model("User", userSchema);
+
+/* ----------------- AUTH ----------------- */
 app.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({
+    await User.create({
       name,
       email,
       password: hashedPassword
     });
 
-    await newUser.save();
-    res.json({ message: "User registered successfully" });
-
+    res.json({ message: "Registered successfully" });
   } catch (err) {
     res.status(400).json({ error: "User already exists" });
   }
 });
 
 app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ error: "Invalid email" });
-
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) return res.status(400).json({ error: "Invalid password" });
-
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  res.json({ token });
-});
-
-/* ----------------- DASHBOARD ROUTE ----------------- */
-app.get("/dashboard", async (req, res) => {
   try {
-    const token = req.headers.authorization;
-    if (!token) return res.status(401).json({ error: "No token" });
+    const { email, password } = req.body;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ error: "Invalid email" });
 
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(400).json({ error: "Invalid password" });
 
-    res.json({
-      isPaid: user.isPaid,
-      email: user.email
-    });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
+    res.json({ token });
   } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
+    res.status(500).json({ error: "Login failed" });
   }
 });
+
+/* ----------------- ADMIN ----------------- */
 app.get("/admin", async (req, res) => {
   try {
     const token = req.headers.authorization;
     if (!token) return res.status(401).json({ error: "No token" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (decoded.role !== "admin") {
+    if (decoded.role !== "admin")
       return res.status(403).json({ error: "Access denied" });
-    }
 
     const users = await User.find().select("-password");
+
+    let totalRevenue = 0;
+    users.forEach(u => {
+      if (u.payments) {
+        u.payments.forEach(p => {
+          totalRevenue += p.amount;
+        });
+      }
+    });
 
     res.json({
       totalUsers: users.length,
       paidUsers: users.filter(u => u.isPaid).length,
+      totalRevenue,
       students: users
     });
-   let totalRevenue = 0;
-
-users.forEach(user => {
-  if (user.payments && user.payments.length > 0) {
-    user.payments.forEach(p => {
-      totalRevenue += p.amount;
-    });
-  }
-});
-res.json({
-  totalUsers: users.length,
-  paidUsers: users.filter(u => u.isPaid).length,
-  totalRevenue,
-  students: users
-});
 
   } catch (err) {
     res.status(401).json({ error: "Invalid token" });
   }
 });
-app.post("/admin/action", async (req, res) => {
-  try {
-    const token = req.headers.authorization;
-    if (!token) return res.status(401).json({ error: "No token" });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (decoded.role !== "admin") {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
-    const { userId, action } = req.body;
-
-    if (action === "delete") {
-      await User.findByIdAndDelete(userId);
-      return res.json({ message: "User deleted" });
-    }
-
-    if (action === "togglePaid") {
-      const user = await User.findById(userId);
-      user.isPaid = !user.isPaid;
-      await user.save();
-      return res.json({ message: "Payment status updated" });
-    }
-
-    if (action === "makeAdmin") {
-      await User.findByIdAndUpdate(userId, { role: "admin" });
-      return res.json({ message: "User promoted to admin" });
-    }
-
-    res.status(400).json({ error: "Invalid action" });
-
-  } catch (err) {
-    res.status(400).json({ error: "Error performing action" });
-  }
-});
 /* ----------------- RAZORPAY ----------------- */
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -183,58 +124,51 @@ const razorpay = new Razorpay({
 
 app.post("/create-order", async (req, res) => {
   try {
-    const options = {
+    const order = await razorpay.orders.create({
       amount: 100,
       currency: "INR",
-      receipt: "receipt_order_1"
-    };
-
-    const order = await razorpay.orders.create(options);
+      receipt: "receipt_order"
+    });
     res.json(order);
-
-  } catch (error) {
-    res.status(500).json({ error: "Order creation failed" });
+  } catch (err) {
+    res.status(500).json({ error: "Order failed" });
   }
 });
 
 app.post("/verify-payment", async (req, res) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-
-  const token = req.headers.authorization;
-  if (!token) return res.status(401).json({ error: "No token provided" });
-
   try {
-    const verifiedUser = jwt.verify(token, process.env.JWT_SECRET);
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const token = req.headers.authorization;
+
+    if (!token) return res.status(401).json({ error: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
-    const expectedSignature = crypto
+    const expected = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(body)
       .digest("hex");
 
-    if (expectedSignature === razorpay_signature) {
+    if (expected !== razorpay_signature)
+      return res.status(400).json({ error: "Invalid signature" });
 
-     await User.findByIdAndUpdate(verifiedUser.id, {
-  isPaid: true,
-  $push: {
-    payments: {
-      orderId: razorpay_order_id,
-      paymentId: razorpay_payment_id,
-      amount: 100,
-      paidAt: new Date()
-    }
-  }
-});
+    await User.findByIdAndUpdate(decoded.id, {
+      isPaid: true,
+      $push: {
+        payments: {
+          orderId: razorpay_order_id,
+          paymentId: razorpay_payment_id,
+          amount: 100
+        }
+      }
+    });
 
-      return res.json({ status: "success" });
-
-    } else {
-      return res.status(400).json({ status: "failure" });
-    }
+    res.json({ status: "success" });
 
   } catch (err) {
-    return res.status(400).json({ error: "Invalid token" });
+    res.status(400).json({ error: "Verification failed" });
   }
 });
 
@@ -242,5 +176,5 @@ app.post("/verify-payment", async (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
