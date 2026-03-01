@@ -189,6 +189,58 @@ function logout(){
   window.location.href="login.html";
 }
 </script>
+<script>
+document.getElementById("pay-btn").onclick = async function () {
+
+  try {
+
+    const orderResponse = await fetch("https://zenithscholars-u2fa.onrender.com/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const order = await orderResponse.json();
+
+    const options = {
+      key: "YOUR_RAZORPAY_PUBLIC_KEY",
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.id,
+      name: "Zenith Scholars",
+      description: "Premium Access",
+      theme: { color: "#7c3aed" },
+
+      handler: async function (response) {
+
+        const verifyResponse = await fetch("https://zenithscholars-u2fa.onrender.com/verify-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": localStorage.getItem("token")
+          },
+          body: JSON.stringify(response)
+        });
+
+        const result = await verifyResponse.json();
+
+        if (result.status === "success") {
+          alert("Payment Successful! Refreshing...");
+          location.reload();
+        } else {
+          alert("Payment verification failed.");
+        }
+      }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+
+  } catch (err) {
+    alert("Payment error. Try again.");
+  }
+
+};
+</script>
 
 </body>
 </html>
