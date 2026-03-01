@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+</head>
+<body>
+
+<h2>Admin Dashboard</h2>
+
+<p id="stats">Loading...</p>
+
+<table border="1" cellpadding="10">
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Role</th>
+<th>Paid</th>
+</tr>
+</thead>
+<tbody id="usersTable"></tbody>
+</table>
+
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+  window.location.href = "login.html";
+}
+
+fetch("https://zenithscholars-u2fa.onrender.com/admin", {
+  headers: { "Authorization": token }
+})
+.then(res => {
+  if (!res.ok) {
+    window.location.href = "dashboard.html";
+  }
+  return res.json();
+})
+.then(data => {
+
+  document.getElementById("stats").innerText =
+    "Total Users: " + data.totalUsers +
+    " | Paid Users: " + data.paidUsers;
+
+  const table = document.getElementById("usersTable");
+
+  data.students.forEach(user => {
+    const row = `
+      <tr>
+        <td>${user.name || "-"}</td>
+        <td>${user.email}</td>
+        <td>${user.role}</td>
+        <td>${user.isPaid ? "Yes" : "No"}</td>
+      </tr>
+    `;
+    table.innerHTML += row;
+  });
+
+});
+</script>
+
+</body>
+</html>

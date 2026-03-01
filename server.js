@@ -94,6 +94,29 @@ app.get("/dashboard", async (req, res) => {
     res.status(401).json({ error: "Invalid token" });
   }
 });
+app.get("/admin", async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    if (!token) return res.status(401).json({ error: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const users = await User.find().select("-password");
+
+    res.json({
+      totalUsers: users.length,
+      paidUsers: users.filter(u => u.isPaid).length,
+      students: users
+    });
+
+  } catch (err) {
+    res.status(401).json({ error: "Invalid token" });
+  }
+});
 
 /* ----------------- RAZORPAY ----------------- */
 const razorpay = new Razorpay({
