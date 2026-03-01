@@ -2,11 +2,11 @@ require("dotenv").config();
 
 const express = require("express");
 const Razorpay = require("razorpay");
-const cors = require("cors");
+
 const crypto = require("crypto");
 
 const app = express();
-const cors = require("cors");
+
 
 const cors = require("cors");
 
