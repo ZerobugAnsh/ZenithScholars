@@ -1,37 +1,192 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Student Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard | Zenith Scholars</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+
+body{
+min-height:100vh;
+background:linear-gradient(-45deg,#0f172a,#1e1b4b,#312e81,#0f172a);
+background-size:400% 400%;
+animation:gradientMove 15s ease infinite;
+color:white;
+}
+
+@keyframes gradientMove{
+0%{background-position:0% 50%;}
+50%{background-position:100% 50%;}
+100%{background-position:0% 50%;}
+}
+
+nav{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:20px 40px;
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(15px);
+border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+nav h2{
+background:linear-gradient(90deg,#818cf8,#c084fc);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+}
+
+nav button{
+padding:8px 20px;
+border:none;
+border-radius:20px;
+background:#ef4444;
+color:white;
+cursor:pointer;
+}
+
+.container{
+padding:40px;
+max-width:1100px;
+margin:auto;
+}
+
+.card{
+background:rgba(255,255,255,0.07);
+padding:30px;
+border-radius:20px;
+margin-bottom:30px;
+border:1px solid rgba(255,255,255,0.1);
+backdrop-filter:blur(12px);
+}
+
+.badge{
+display:inline-block;
+padding:6px 15px;
+border-radius:20px;
+font-size:14px;
+margin-top:10px;
+}
+
+.paid{background:#16a34a;}
+.unpaid{background:#dc2626;}
+
+#pay-btn{
+margin-top:20px;
+padding:12px 30px;
+border:none;
+border-radius:50px;
+background:linear-gradient(90deg,#6366f1,#a855f7);
+color:white;
+font-weight:600;
+cursor:pointer;
+display:none;
+}
+
+.section-title{
+margin-bottom:15px;
+font-weight:600;
+}
+
+.premium-section{
+display:none;
+}
+
+.material-link{
+display:block;
+margin-top:10px;
+color:#c084fc;
+text-decoration:none;
+}
+
+.material-link:hover{
+text-decoration:underline;
+}
+
+.announcement{
+margin-top:10px;
+color:#cbd5e1;
+}
+
+</style>
 </head>
+
 <body>
 
-<h2>Welcome to Dashboard</h2>
-
+<nav>
+<h2>Zenith Scholars</h2>
 <button onclick="logout()">Logout</button>
+</nav>
+
+<div class="container">
+
+<div class="card">
+<h3>Welcome, <span id="userEmail">Student</span></h3>
+<p id="statusText">Checking payment status...</p>
+<span id="statusBadge" class="badge"></span>
+<button id="pay-btn">Unlock Premium Access</button>
+</div>
+
+<div class="card premium-section" id="premiumSection">
+<h3 class="section-title">Premium Study Materials</h3>
+<a href="#" class="material-link">Download Mathematics Notes</a>
+<a href="#" class="material-link">Download Science Notes</a>
+<a href="#" class="material-link">Weekly Test Papers</a>
+</div>
+
+<div class="card">
+<h3 class="section-title">Announcements</h3>
+<p class="announcement">📢 New batch starting from 15 March 2026</p>
+<p class="announcement">📝 Weekly test every Sunday</p>
+</div>
+
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
 const token = localStorage.getItem("token");
 
 if(!token){
-  window.location.href = "login.html";
+  window.location.href="login.html";
 }
 
 fetch("https://zenithscholars-u2fa.onrender.com/dashboard",{
-  headers:{
-    "Authorization": token
+  headers:{ "Authorization": token }
+})
+.then(res=>res.json())
+.then(data=>{
+  
+  document.getElementById("userEmail").innerText = data.email;
+
+  const badge=document.getElementById("statusBadge");
+  const text=document.getElementById("statusText");
+  const payBtn=document.getElementById("pay-btn");
+  const premium=document.getElementById("premiumSection");
+
+  if(data.isPaid){
+    text.innerText="Premium Access Activated";
+    badge.innerText="PAID";
+    badge.classList.add("paid");
+    premium.style.display="block";
+  } else {
+    text.innerText="You have not unlocked premium access yet.";
+    badge.innerText="UNPAID";
+    badge.classList.add("unpaid");
+    payBtn.style.display="inline-block";
   }
 })
-.then(res => res.json())
-.then(data => {
-  console.log(data);
-})
 .catch(()=>{
-  window.location.href = "login.html";
+  window.location.href="login.html";
 });
 
 function logout(){
   localStorage.removeItem("token");
-  window.location.href = "login.html";
+  window.location.href="login.html";
 }
 </script>
 
