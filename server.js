@@ -119,10 +119,10 @@ app.get("/admin", async (req, res) => {
       paidUsers: users.filter(u => u.isPaid).length,
       students: users
     });
-    let totalRevenue = 0;
+   let totalRevenue = 0;
 
 users.forEach(user => {
-  if (user.payments) {
+  if (user.payments && user.payments.length > 0) {
     user.payments.forEach(p => {
       totalRevenue += p.amount;
     });
