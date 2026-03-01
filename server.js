@@ -29,7 +29,9 @@ app.use(express.json());
 const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
-  password: String
+  password: String,
+  role: { type: String, default: "student" }, // student or admin
+  isPaid: { type: Boolean, default: false }
 });
 
 const User = mongoose.model("User", userSchema);
@@ -65,10 +67,10 @@ app.post("/login", async (req, res) => {
   if (!validPassword) return res.status(400).json({ error: "Invalid password" });
 
   const token = jwt.sign(
-    { id: user._id },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
+  { id: user._id, role: user.role },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" }
+);
 
   res.json({ token });
 });
@@ -96,20 +98,37 @@ app.post("/create-order", async (req, res) => {
   }
 });
 
-app.post("/verify-payment", (req, res) => {
+aapp.post("/verify-payment", async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-  const body = razorpay_order_id + "|" + razorpay_payment_id;
+  const token = req.headers.authorization;
+  if (!token) return res.status(401).json({ error: "No token provided" });
 
-  const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    .update(body)
-    .digest("hex");
+  try {
 
-  if (expectedSignature === razorpay_signature) {
-    res.json({ status: "success" });
-  } else {
-    res.status(400).json({ status: "failure" });
+    const verifiedUser = jwt.verify(token, process.env.JWT_SECRET);
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature === razorpay_signature) {
+
+      await User.findByIdAndUpdate(verifiedUser.id, {
+        isPaid: true
+      });
+
+      return res.json({ status: "success", message: "Payment verified and user upgraded" });
+
+    } else {
+      return res.status(400).json({ status: "failure" });
+    }
+
+  } catch (err) {
+    return res.status(400).json({ error: "Invalid token" });
   }
 });
 

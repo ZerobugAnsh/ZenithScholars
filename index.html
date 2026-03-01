@@ -391,6 +391,74 @@ counters.forEach(counter => {
 });
 
 </script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+document.getElementById("pay-btn").onclick = async function () {
+
+    try {
+
+        // 1️⃣ Create order from backend
+        const orderResponse = await fetch("https://zenithscholars-u2fa.onrender.com/create-order", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+
+        const order = await orderResponse.json();
+
+        if (!order.id) {
+            alert("Order creation failed");
+            return;
+        }
+
+        // 2️⃣ Configure Razorpay options
+        const options = {
+            key: "rzp_live_SLJCOBqfFovpLm", // Replace with your LIVE or TEST key
+            amount: order.amount,
+            currency: order.currency,
+            order_id: order.id,
+            name: "Zenith Scholars",
+            description: "Course Payment",
+            theme: {
+                color: "#7c3aed"
+            },
+
+            handler: async function (response) {
+
+                // 3️⃣ Verify payment and mark user paid
+                const verifyResponse = await fetch("https://zenithscholars-u2fa.onrender.com/verify-payment", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": localStorage.getItem("token")
+                    },
+                    body: JSON.stringify(response)
+                });
+
+                const result = await verifyResponse.json();
+
+                if (result.status === "success") {
+                    alert("Payment Successful! Premium access unlocked.");
+                    window.location.href = "dashboard.html";
+                } else {
+                    alert("Payment verification failed.");
+                }
+            }
+        };
+
+        // 4️⃣ Open Razorpay popup
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+    } catch (error) {
+        console.error("Payment error:", error);
+        alert("Something went wrong.");
+    }
+
+};
+</script>
 
 </body>
 </html>
