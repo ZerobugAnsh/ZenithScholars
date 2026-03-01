@@ -188,19 +188,25 @@ async function loadAdmin() {
   table.innerHTML = "";
 
   data.students.forEach(user => {
-    table.innerHTML += `
-      <tr>
-        <td>${user.name || "-"}</td>
-        <td>${user.email}</td>
-        <td>${user.role}</td>
-        <td>
-          <span class="badge ${user.isPaid ? "paid" : "free"}">
-            ${user.isPaid ? "Paid" : "Free"}
-          </span>
-        </td>
-      </tr>
-    `;
-  });
+  table.innerHTML += `
+  <th>Actions</th>
+    <tr>
+      <td>${user.name || "-"}</td>
+      <td>${user.email}</td>
+      <td>${user.role}</td>
+      <td>
+        <span class="badge ${user.isPaid ? "paid" : "free"}">
+          ${user.isPaid ? "Paid" : "Free"}
+        </span>
+      </td>
+      <td>
+        <button onclick="togglePaid('${user._id}')">Toggle Paid</button>
+        <button onclick="makeAdmin('${user._id}')">Make Admin</button>
+        <button onclick="deleteUser('${user._id}')">Delete</button>
+      </td>
+    </tr>
+  `;
+});
 
   // Chart
   const ctx = document.getElementById("userChart").getContext("2d");
@@ -225,6 +231,46 @@ function logout() {
 }
 
 loadAdmin();
+async function deleteUser(userId) {
+  if (!confirm("Delete this user?")) return;
+
+  await fetch("https://zenithscholars-u2fa.onrender.com/admin/action", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": token
+    },
+    body: JSON.stringify({ userId, action: "delete" })
+  });
+
+  loadAdmin();
+}
+
+async function togglePaid(userId) {
+  await fetch("https://zenithscholars-u2fa.onrender.com/admin/action", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": token
+    },
+    body: JSON.stringify({ userId, action: "togglePaid" })
+  });
+
+  loadAdmin();
+}
+
+async function makeAdmin(userId) {
+  await fetch("https://zenithscholars-u2fa.onrender.com/admin/action", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": token
+    },
+    body: JSON.stringify({ userId, action: "makeAdmin" })
+  });
+
+  loadAdmin();
+}
 </script>
 
 </body>
