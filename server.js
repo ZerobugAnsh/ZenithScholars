@@ -209,6 +209,44 @@ app.get("/admin", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+/* ================= ADMIN ACTIONS ================= */
+app.post("/admin/action", async (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    if (!token)
+      return res.status(401).json({ error: "No token provided" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== "admin")
+      return res.status(403).json({ error: "Access denied" });
+
+    const { userId, action } = req.body;
+
+    if (action === "delete") {
+      await User.findByIdAndDelete(userId);
+      return res.json({ message: "User deleted" });
+    }
+
+    if (action === "togglePaid") {
+      const user = await User.findById(userId);
+      user.isPaid = !user.isPaid;
+      await user.save();
+      return res.json({ message: "Payment status updated" });
+    }
+
+    if (action === "makeAdmin") {
+      await User.findByIdAndUpdate(userId, { role: "admin" });
+      return res.json({ message: "User promoted to admin" });
+    }
+
+    res.status(400).json({ error: "Invalid action" });
+
+  } catch (err) {
+    console.log("ADMIN ACTION ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 /* ================= RAZORPAY ================= */
 const razorpay = new Razorpay({
