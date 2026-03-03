@@ -96,27 +96,31 @@ async function register() {
 
     const res = await fetch("https://zenithscholars-u2fa.onrender.com/register", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        password
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password })
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.log("Non-JSON response:", text);
+      errorDiv.innerText = "Server error";
+      return;
+    }
 
     if (!res.ok) {
-  errorDiv.innerText = data.error || "Registration failed";
-  return;
-}
+      errorDiv.innerText = data.error || "Registration failed";
+      return;
+    }
 
-alert("OTP sent to your email. Please verify.");
-window.location.href = "otp.html";
+    alert("OTP sent to your email.");
+    window.location.href = "otp.html";
 
   } catch (err) {
+    console.log("Fetch error:", err);
     errorDiv.innerText = "Server error";
   }
 }
