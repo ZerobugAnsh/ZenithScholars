@@ -6,7 +6,9 @@ const cors = require("cors");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 const app = express();
 
@@ -25,15 +27,7 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.log("❌ MongoDB Error:", err));
 
 /* ================= EMAIL CONFIG ================= */
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -86,24 +80,25 @@ app.post("/register", async (req, res) => {
       otpExpires: Date.now() + 5 * 60 * 1000
     });
 
-    try {
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Zenith Scholars - Email Verification OTP",
-        html: `
-          <h2>Email Verification</h2>
-          <p>Your OTP is:</p>
-          <h1>${otp}</h1>
-          <p>This OTP is valid for 5 minutes.</p>
-        `
-      });
-      console.log("✅ Email sent successfully");
-    } catch (mailError) {
-      console.log("❌ MAIL ERROR:", mailError);
-      return res.status(500).json({ error: "Email sending failed" });
-    }
+  try {
+  await resend.emails.send({
+    from: "onboarding@resend.dev", // default allowed sender
+    to: email,
+    subject: "Zenith Scholars - Email Verification OTP",
+    html: `
+      <h2>Email Verification</h2>
+      <p>Your OTP is:</p>
+      <h1>${otp}</h1>
+      <p>This OTP is valid for 5 minutes.</p>
+    `
+  });
 
+  console.log("✅ Email sent via Resend");
+
+} catch (mailError) {
+  console.log("❌ RESEND ERROR:", mailError);
+  return res.status(500).json({ error: "Email sending failed" });
+}
     res.json({ message: "OTP sent to email" });
 
   } catch (err) {
