@@ -366,16 +366,20 @@ app.post("/admin/delete-announcement", async (req, res) => {
       return res.status(403).json({ error: "Admin only" });
 
     const { id } = req.body;
+/* ================= GET ANNOUNCEMENTS ================= */
+
 app.get("/announcements", async (req, res) => {
+  try {
 
-  const announcements = await Announcement.find({
-    publishAt: { $lte: new Date() }
-  })
-  .sort({ publishAt: -1 })
-  .limit(5);
+    const announcements = await Announcement
+      .find({ publishAt: { $lte: new Date() } }) // only published ones
+      .sort({ publishAt: -1 });
 
-  res.json(announcements);
+    res.json(announcements);
 
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load announcements" });
+  }
 });
     await Announcement.findByIdAndDelete(id);
 
