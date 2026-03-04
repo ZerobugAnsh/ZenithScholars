@@ -353,6 +353,7 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   const classes = await res.json();
+  classes.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const container = document.createElement("div");
   container.className = "card";
@@ -388,12 +389,8 @@ const formattedDate = classDate.toLocaleString("en-IN", {
 
     }
     else {
-
-      statusBadge = `<span class="live-badge">ENDED</span>`;
-
-      buttonHTML = `<button class="join-btn disabled-btn" disabled>Class Ended</button>`;
-    }
-
+  return; // hide ended classes
+}
    
     
 
