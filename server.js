@@ -185,33 +185,38 @@ app.post("/login", async (req, res) => {
 
 /* ================= GET LIVE CLASSES ================= */
 
-app.get("/classes", async (req, res) => {
+
+app.post("/admin/create-class", async (req, res) => {
   try {
-    const token = extractToken(req);
+    const token = req.headers.authorization;
     if (!token) return res.status(401).json({ error: "No token" });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
 
-    const classes = await LiveClass.find().sort({ date: 1 });
+    if (decoded.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
 
-    const updatedClasses = classes.map(cls => ({
-      _id: cls._id,
-      title: cls.title,
-      description: cls.description,
-      date: new Date(req.body.date + "Z"),
-      createdAt: cls.createdAt,
+    const { title, description, date, meetLink } = req.body;
 
-      // 🔐 Hide meet link from unpaid users
-      meetLink: user.isPaid ? cls.meetLink : null,
+    if (!title || !date) {
+      return res.status(400).json({ error: "Title and date required" });
+    }
 
-      canJoin: user.isPaid
-    }));
+    const newClass = new LiveClass({
+      title,
+      description,
+      date: new Date(date), // convert safely
+      meetLink
+    });
 
-    res.json(updatedClasses);
+    await newClass.save();
+
+    res.json({ message: "Class created", class: newClass });
 
   } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
+    console.log("CREATE CLASS ERROR:", err);   // very important
+    res.status(500).json({ error: "Server error while creating class" });
   }
 });
 /* ================= DASHBOARD ================= */
