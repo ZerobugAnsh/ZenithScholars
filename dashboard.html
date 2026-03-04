@@ -346,7 +346,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
   classes.forEach(cls => {
 
-    const classDate = new Date(cls.date);
+   const classDate = new Date(cls.date);
+const now = new Date();
+
+// Normalize both to milliseconds
+const classTime = classDate.getTime();
+const currentTime = now.getTime();
     const liveEndTime = new Date(classDate.getTime() + 60 * 60 * 1000);
     const formattedDate = classDate.toLocaleString();
 
