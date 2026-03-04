@@ -361,7 +361,10 @@ document.addEventListener("DOMContentLoaded", function() {
   const now = Date.now();
 
   classes.forEach(cls => {
-
+const classDate = new Date(cls.date);
+const formattedDate = classDate.toLocaleString("en-IN", {
+  timeZone: "Asia/Kolkata"
+});
     const classStart = new Date(cls.date).getTime();
     const classEnd = classStart + 60 * 60 * 1000;
 
@@ -391,8 +394,7 @@ document.addEventListener("DOMContentLoaded", function() {
       buttonHTML = `<button class="join-btn disabled-btn" disabled>Class Ended</button>`;
     }
 
-    const formattedDate = new Date(cls.date).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata"
+   
     });
 
     container.innerHTML += `
