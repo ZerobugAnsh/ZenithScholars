@@ -85,6 +85,12 @@ const liveClassSchema = new mongoose.Schema({
 });
 
 const LiveClass = mongoose.model("LiveClass", liveClassSchema);
+const announcementSchema = new mongoose.Schema({
+  message: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Announcement = mongoose.model("Announcement", announcementSchema);
 
 /* ================= REGISTER ================= */
 
@@ -324,6 +330,40 @@ app.get("/classes", async (req, res) => {
 
   } catch (err) {
     res.status(401).json({ error: "Invalid token" });
+  }
+});
+app.post("/admin/create-announcement", async (req, res) => {
+  try {
+
+    const token = extractToken(req);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== "admin")
+      return res.status(403).json({ error: "Admin only" });
+
+    const { message } = req.body;
+
+    const announcement = await Announcement.create({ message });
+
+    res.json({ message: "Announcement created", announcement });
+
+  } catch (err) {
+    console.log("ANNOUNCEMENT ERROR:", err);
+    res.status(500).json({ error: "Failed to create announcement" });
+  }
+});
+app.get("/announcements", async (req, res) => {
+  try {
+
+    const announcements = await Announcement
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(6);
+
+    res.json(announcements);
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load announcements" });
   }
 });
 

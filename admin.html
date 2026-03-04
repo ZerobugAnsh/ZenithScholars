@@ -150,6 +150,11 @@ button {
   <input id="classLink" placeholder="Google Meet / Zoom Link">
   <button onclick="createClass()">Create</button>
 </div>
+<div class="card">
+  <h3>Create Announcement</h3>
+  <input id="announcementText" placeholder="Write announcement">
+  <button onclick="createAnnouncement()">Publish</button>
+</div>
 
   <table>
     <thead>
@@ -307,6 +312,24 @@ async function createClass() {
   });
 
   alert("Class Created");
+}
+async function createAnnouncement() {
+
+  const message = document.getElementById("announcementText").value;
+
+  if(!message) return alert("Write announcement");
+
+  await fetch("https://zenithscholars-u2fa.onrender.com/admin/create-announcement",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":localStorage.getItem("token")
+    },
+    body:JSON.stringify({message})
+  });
+
+  alert("Announcement posted");
+
 }
 </script>
 
