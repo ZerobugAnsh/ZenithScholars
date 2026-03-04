@@ -286,6 +286,12 @@ async function makeAdmin(userId) {
   loadAdmin();
 }
 async function createClass() {
+
+  const localDate = document.getElementById("classDate").value;
+
+  // convert local time (IST) → proper ISO UTC
+  const isoDate = new Date(localDate).toISOString();
+
   await fetch("https://zenithscholars-u2fa.onrender.com/admin/create-class", {
     method: "POST",
     headers: {
@@ -295,7 +301,7 @@ async function createClass() {
     body: JSON.stringify({
       title: document.getElementById("classTitle").value,
       description: document.getElementById("classDesc").value,
-      date: document.getElementById("classDate").value,
+      date: isoDate,
       meetLink: document.getElementById("classLink").value
     })
   });
